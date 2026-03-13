@@ -3,7 +3,15 @@ import os
 import sys
 import tty
 import termios
+import time
 from collections import deque
+
+# ANSI Color Codes
+GREEN = '\033[92m'
+RED = '\033[91m'
+CYAN = '\033[96m'
+YELLOW = '\033[93m'
+RESET = '\033[0m'
 
 def getch():
     """Reads a single character from standard input without requiring Enter."""
@@ -67,9 +75,9 @@ class MazeGame:
             self.maze[exit_x-1][exit_y] = 0 # Force a connection to the exit
 
     def solve_maze(self):
-        # BFS to find the shortest path from start to exit
-        queue = deque([[(0, 0)]])
-        visited = set([(0, 0)])
+        # BFS to find the shortest path from CURRENT player position to exit
+        queue: deque[list[tuple[int, int]]] = deque([[self.player_position]])
+        visited: set[tuple[int, int]] = set([self.player_position])
         
         while queue:
             path = queue.popleft()
@@ -87,7 +95,19 @@ class MazeGame:
 
     def move_player(self, direction):
         if direction == 'g':
+            # Recalculate path from wherever the player currently is
+            self.solve_maze() 
             self.show_auto_path = True
+            
+            # Show the route for a brief moment before moving
+            self.display_game()
+            time.sleep(0.5)
+            
+            # Animate the player moving along the path
+            for step in self.recorded_path[1:]: # Skip the first step (current position)
+                self.player_position = step
+                self.display_game()
+                time.sleep(1.0 / 3.0) # Move 3 times a second
             return
             
         x, y = self.player_position
@@ -113,19 +133,19 @@ class MazeGame:
         for i in range(self.size):
             for j in range(self.size):
                 if (i, j) == self.player_position:
-                    print('P', end=' ')
+                    print(f'{GREEN}P{RESET}', end=' ')
                 elif (i, j) == self.exit_position:
-                    print('E', end=' ')
+                    print(f'{RED}E{RESET}', end=' ')
                 elif self.show_auto_path and (i, j) in self.recorded_path:
-                    print('*', end=' ')
+                    print(f'{YELLOW}*{RESET}', end=' ')
                 elif self.maze[i][j] == 1:
-                    print('#', end=' ')
+                    print(f'{CYAN}#{RESET}', end=' ')
                 else:
                     print(' ', end=' ') # Changed empty space to ' ' instead of '.' for cleaner look
             print()
         print("\nControls:")
         print("  W/A/S/D : Move")
-        print("  G       : Show Solution")
+        print("  G       : Auto-solve (3 moves/sec)")
         print("  Q       : Quit")
 
 if __name__ == "__main__":
